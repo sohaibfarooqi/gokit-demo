@@ -8,26 +8,27 @@ import (
 
 // CreateRequest collects the request parameters for the Create method.
 type CreateRequest struct {
-	Email string `json:"email"`
+	User service.User
 }
 
 // CreateResponse collects the response parameters for the Create method.
 type CreateResponse struct {
-	E0 error `json:"e0"`
+	User service.User `json:"user,omitempty"`
+	Err error `json:"err,omitempty"`
 }
 
 // MakeCreateEndpoint returns an endpoint that invokes Create on the service.
 func MakeCreateEndpoint(s service.UsersService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(CreateRequest)
-		e0 := s.Create(ctx, req.Email)
-		return CreateResponse{E0: e0}, nil
+		u, err := s.Create(ctx, req.User)
+		return CreateResponse{User: u, Err: err}, nil
 	}
 }
 
 // Failed implements Failer.
 func (r CreateResponse) Failed() error {
-	return r.E0
+	return r.Err
 }
 
 // Failure is an interface that should be implemented by response types.
@@ -38,11 +39,12 @@ type Failure interface {
 }
 
 // Create implements Service. Primarily useful in a client.
-func (e Endpoints) Create(ctx context.Context, email string) (e0 error) {
-	request := CreateRequest{Email: email}
+func (e Endpoints) Create(ctx context.Context, u service.User) (service.User, error) {
+	request := CreateRequest{User: u}
 	response, err := e.CreateEndpoint(ctx, request)
 	if err != nil {
-		return
+		return service.User{}, nil
 	}
-	return response.(CreateResponse).E0
+	resp := response.(CreateResponse)
+	return resp.User, resp.Err
 }
