@@ -1,26 +1,50 @@
 package service
 
-import "context"
+import (
+  "context"
+  "errors"
+  "sync"
+)
 
+// CRUD interface for users
 type UsersService interface {
-	Create(ctx context.Context, email string) error
+  Create(ctx context.Context, u User) (User, error)
 }
 
-type basicUsersService struct{}
-
-func (b *basicUsersService) Create(ctx context.Context, email string) (e0 error) {
-	// TODO implement the business logic of Create
-	return e0
+type User struct {
+  FirstName   string
+  LastName    string
+  Email       string
+  Password    string
 }
 
-// NewBasicUsersService returns a naive, stateless implementation of UsersService.
-func NewBasicUsersService() UsersService {
-	return &basicUsersService{}
+var ErrAlreadyExists   = errors.New("user already exists")
+
+type InMemService struct {
+  mtx sync.RWMutex
+  m map[string]User
+}
+
+// Inmemory service implementation
+func NewInMemService() UsersService {
+  return &InMemService{
+    m: map[string]User{},
+  }
+}
+
+func (s *InMemService) Create(ctx context.Context, u User) (User, error) {
+  s.mtx.Lock()
+  defer s.mtx.Unlock()
+  if _, ok := s.m[u.Email]; ok {
+    return User{}, ErrAlreadyExists // POST = create, don't overwrite
+  }
+  s.m[u.Email] = u
+	return u, nil
 }
 
 // New returns a UsersService with all of the expected middleware wired in.
 func New(middleware []Middleware) UsersService {
-	var svc UsersService = NewBasicUsersService()
+	var svc UsersService = NewInMemService()
 	for _, m := range middleware {
 		svc = m(svc)
 	}
