@@ -45,11 +45,3 @@ func (s *InMemService) Create(ctx context.Context, u User) (User, error) {
   return u, nil
 }
 
-// New returns a UsersService with all of the expected middleware wired in.
-func New(middleware []Middleware) UsersService {
-  var svc UsersService = NewInMemService()
-  for _, m := range middleware {
-    svc = m(svc)
-  }
-  return svc
-}

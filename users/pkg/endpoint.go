@@ -2,44 +2,47 @@ package pkg
 
 import (
   "context"
-  service "github.com/sohaibfarooqi/fragbook/users/pkg/service"
-  endpoint "github.com/go-kit/kit/endpoint"
+  "net/url"
+  "strings"
+
+  "github.com/go-kit/kit/endpoint"
+  httptransport "github.com/go-kit/kit/transport/http"
 )
 
-type Endpoint struct{
-  UserCreateEndpoint  endpoint.Endpoint
+type Endpoints struct {
+  CreateUserEndpoint  endpoint.Endpoint
 }
 
-func MakeServerEndpoint(s Service) Endpoints {
+func MakeServerEndpoints(s UsersService) Endpoints {
   return Endpoints {
-    UserCreateEndpoint : MakeUserCreateEndpoint(s)
+    CreateUserEndpoint : MakeUserCreateEndpoint(s),
   }
 }
 
-func MakeClientEndpoint(instance string) (Endpoints, Error){
-  if !string.HasPrefix(instance, "http"){
+func MakeClientEndpoints(instance string) (Endpoints, error){
+  if !strings.HasPrefix(instance, "http"){
     instance = "http://" + instance
   }
   tgt, err := url.Parse(instance)
   if err != nil{
-    return Endpoints, err
+    return Endpoints{}, err
   }
   tgt.Path = ""
 
   options := []httptransport.ClientOption{}
 
   return Endpoints{
-    UserCreateEndpoint : httptransport.NewClient("POST", tgt, encodeUserCreateRequest, decodeUserCreateResponse, options...).Endpoint(),
+    CreateUserEndpoint : httptransport.NewClient("POST", tgt, encodeCreateUserRequest, decodeCreateUserResponse, options...).Endpoint(),
   }, nil
 }
 // UserCreateRequest collects the request parameters for the UserCreate method.
 type UserCreateRequest struct {
-  User service.User
+  User User
 }
 
 // UserCreateResponse collects the response parameters for the UserCreate method.
 type UserCreateResponse struct {
-  User service.User `json:"user,omitempty"`
+  User User `json:"user,omitempty"`
   Err error `json:"err,omitempty"`
 }
 
@@ -47,21 +50,21 @@ type UserCreateResponse struct {
 func (r UserCreateResponse) error() error { return r.Err }
 
 // Create implements Service. Primarily useful in a client.
-func (e Endpoints) UserCreate(ctx context.Context, u service.User) (service.User, error) {
+func (e Endpoints) UserCreate(ctx context.Context, u User) (User, error) {
   request := UserCreateRequest{User: u}
-  response, err := e.UserCreateEndpoint(ctx, request)
+  response, err := e.CreateUserEndpoint(ctx, request)
   if err != nil {
-    return service.User{}, nil
+    return User{}, nil
   }
-  resp := response.(CreateResponse)
+  resp := response.(UserCreateResponse)
   return resp.User, resp.Err
 }
 
 // MakeUserCreateEndpoint returns an endpoint that invokes Create on the service.
-func MakeUserCreateEndpoint(s service.UsersService) endpoint.Endpoint {
+func MakeUserCreateEndpoint(s UsersService) endpoint.Endpoint {
   return func(ctx context.Context, request interface{}) (interface{}, error) {
     req := request.(UserCreateRequest)
-    u, err := s.UserCreate(ctx, req.User)
+    u, err := s.Create(ctx, req.User)
     return UserCreateResponse{User: u, Err: err}, nil
   }
 }
