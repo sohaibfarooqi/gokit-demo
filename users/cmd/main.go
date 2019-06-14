@@ -9,9 +9,6 @@ import (
   "syscall"
 
   zipkingoopentracing "github.com/openzipkin/zipkin-go-opentracing"
-  prometheus "github.com/go-kit/kit/metrics/prometheus"
-  prometheus1 "github.com/prometheus/client_golang/prometheus"
-  promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
 
   "github.com/sohaibfarooqi/fragbook/users/pkg"
   "github.com/go-kit/kit/log"
@@ -32,26 +29,23 @@ func main(){
   logger = log.With(logger, "ts", log.DefaultTimestampUTC)
   logger = log.With(logger, "caller", log.DefaultCaller)
 
-  // logger.Log("tracer", "Zipkin", "URL", *zipkinURL)
-  // collector, err := zipkingoopentracing.NewHTTPCollector(*zipkinURL)
-  // if err != nil {
-  //   logger.Log("err", err)
-  //   os.Exit(1)
-  // }
-  // defer collector.Close()
+  logger.Log("tracer", "Zipkin", "URL", *zipkinURL)
+  collector, err := zipkingoopentracing.NewHTTPCollector(*zipkinURL)
+  if err != nil {
+    logger.Log("err", err)
+    os.Exit(1)
+  }
+  defer collector.Close()
 
-  var s users.Service
+  var s pkg.UsersService
   {
-    s = users.NewInmemService()
-    s = users.LoggingMiddleware(logger)(s)
+    s = pkg.NewInMemService()
   }
 
   var h http.Handler
   {
-    h = users.MakeHTTPHandler(s, log.With(logger, "component", "HTTP"))
+    h = pkg.MakeHttpHandler(s, log.With(logger, "component", "HTTP"))
   }
-
-  initMetricsEndpoint(s)
 
   errs := make(chan error)
   go func() {
@@ -66,19 +60,5 @@ func main(){
   }()
 
   logger.Log("exit", <-errs)
-}
-
-func initMetricsEndpoint(g *group.Group) {
-  http.DefaultServeMux.Handle("/metrics/", promhttp.Handler())
-  debugListener, err := net.Listen("tcp", *debugAddr)
-  if err != nil {
-    logger.Log("transport", "debug/HTTP", "during", "Listen", "err", err)
-  }
-  g.Add(func() error {
-    logger.Log("transport", "debug/HTTP", "addr", *debugAddr)
-    return http.Serve(debugListener, http.DefaultServeMux)
-  }, func(error) {
-    debugListener.Close()
-  })
 }
 
