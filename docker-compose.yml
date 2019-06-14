@@ -1,5 +1,15 @@
 version: "2"
+
 services:
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    environment:
+      - STORAGE_TYPE=mem
+    ports:
+      - 9411:9411
+
   users:
     build:
       context: .
@@ -9,4 +19,4 @@ services:
     - .:/go/src/github.com/sohaibfarooqi/fragbook
     container_name: users
     ports:
-    - 8800:8081
+    - 8080:8081

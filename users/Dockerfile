@@ -12,7 +12,5 @@ RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
 RUN git config --global --add url."git@github.com:".insteadOf "https://github.com/"
 
 RUN go get -t -v ./...
-RUN go get github.com/canthefason/go-watcher
-RUN go install github.com/canthefason/go-watcher/cmd/watcher
 
-ENTRYPOINT watcher -run github.com/sohaibfarooqi/fragbook/users/cmd -watch github.com/sohaibfarooqi/fragbook/users
+ENTRYPOINT go run ./cmd/main.go -http.addr :8080 -zipkinURL http://zipkin:9411/
