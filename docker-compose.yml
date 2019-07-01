@@ -11,6 +11,12 @@ services:
     ports:
       - 9411:9411
 
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - 9090:9090
+
   users:
     build:
       context: .

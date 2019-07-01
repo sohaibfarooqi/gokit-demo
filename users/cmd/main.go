@@ -3,6 +3,7 @@ package main
 import (
   "flag"
   "fmt"
+  "net"
   "net/http"
   "os"
   "os/signal"
@@ -13,10 +14,12 @@ import (
 
   opentracing "github.com/opentracing/opentracing-go"
   zipkin "github.com/openzipkin/zipkin-go-opentracing"
+  promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
 
 )
 
 var httpAddr = flag.String("http-addr", ":8081", "HTTP listen address")
+var debugAddr = flag.String("debug-addr", ":8080", "HTTP listen address")
 var zipkinURL = flag.String("zipkin", "", "Enable Zipkin tracing via a collector URL e.g. http://localhost:9411/api/v1/spans")
 
 func main(){
@@ -60,6 +63,16 @@ func main(){
   }
 
   errs := make(chan error)
+  go func() {
+    http.DefaultServeMux.Handle("/metrics", promhttp.Handler())
+    debugListener, err := net.Listen("tcp", *debugAddr)
+    if err != nil {
+      logger.Log("transport", "debug/HTTP", "during", "Listen", "err", err)
+    }
+    errs <- http.Serve(debugListener, http.DefaultServeMux)
+
+  }()
+
   go func() {
     c := make(chan os.Signal)
     signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
