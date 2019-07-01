@@ -20,4 +20,4 @@ services:
     - .:/go/src/github.com/sohaibfarooqi/fragbook
     container_name: users
     ports:
-    - 8080:8081
+    - 8081:8081
