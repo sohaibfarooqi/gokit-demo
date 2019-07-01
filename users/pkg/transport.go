@@ -13,18 +13,21 @@ import (
   "github.com/go-kit/kit/log"
   "github.com/go-kit/kit/transport"
   httptransport "github.com/go-kit/kit/transport/http"
+  opentracing "github.com/go-kit/kit/tracing/opentracing"
+  opentracinggo "github.com/opentracing/opentracing-go"
 )
 
 var(
   ErrBadRouting = errors.New("inconsistent mapping between route and handler (programmer error)")
 )
 
-func MakeHttpHandler(s UsersService, logger log.Logger) http.Handler {
+func MakeHttpHandler(s UsersService, logger log.Logger, tracer opentracinggo.Tracer) http.Handler {
   r := mux.NewRouter()
   e := MakeServerEndpoints(s)
   options := []httptransport.ServerOption{
     httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
     httptransport.ServerErrorEncoder(encodeError),
+    httptransport.ServerBefore(opentracing.HTTPToContext(tracer, "Create", logger)),
   }
 
   r.Methods("POST").Path("/users/").Handler(httptransport.NewServer(
