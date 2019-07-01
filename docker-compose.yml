@@ -7,6 +7,7 @@ services:
     container_name: zipkin
     environment:
       - STORAGE_TYPE=mem
+      - JAVA_OPTS=-Dlogging.level.zipkin=DEBUG -Dlogging.level.zipkin2=DEBUG
     ports:
       - 9411:9411
 

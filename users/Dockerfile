@@ -13,4 +13,4 @@ RUN git config --global --add url."git@github.com:".insteadOf "https://github.co
 
 RUN go get -t -v ./...
 
-ENTRYPOINT go run ./cmd/main.go -http.addr :8080 -zipkinURL http://zipkin:9411/
+ENTRYPOINT go run ./cmd/main.go -zipkin-url http://zipkin:9411/
