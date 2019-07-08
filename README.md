@@ -7,6 +7,9 @@ Demo API using Go-Kit, Zipkin and Prometheus
  - `eval $(docker-machine env dev)`
  - `export COMPOSE_TLS_VERSION=TLSv1_2`
  - `docker-compose up`
+
+To run migrations use:
+
  - `docker exec -it users migrate -source file://migrations -database postgres://postgres:@db:5432/postgres?sslmode=disable up`
 
 To create a new migration file use:
