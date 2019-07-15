@@ -15,10 +15,12 @@ type UsersService interface {
 }
 
 type User struct {
-  FirstName   string
-  LastName    string
-  Email       string
-  Password    string
+  tableName struct{}  `sql:"users,alias:user"`
+
+  FirstName   string  `sql:"firstname"`
+  LastName    string  `sql:"lastname"`
+  Email       string  `sql:"email"`
+  Password    string  `sql:"password"`
 }
 
 var (
