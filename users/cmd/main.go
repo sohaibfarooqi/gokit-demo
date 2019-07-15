@@ -54,7 +54,7 @@ func main(){
 
   var s pkg.UsersService
   {
-    s = pkg.NewInMemService()
+    s = pkg.NewPGService()
   }
 
   var h http.Handler
