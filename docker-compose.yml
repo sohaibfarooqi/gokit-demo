@@ -9,6 +9,8 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=
+    ports:
+      - 5432:5432
     volumes:
       - /var/run/postgresql:/var/run/postgresql
 
@@ -32,6 +34,12 @@ services:
       context: .
       dockerfile: users/Dockerfile
     restart: always
+    environment:
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_PASS=
+      - PG_USER=postgres
+      - PG_DB=postgres
     volumes:
     - .:/go/src/github.com/sohaibfarooqi/fragbook
     container_name: users
