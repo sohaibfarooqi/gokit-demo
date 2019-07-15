@@ -3,8 +3,9 @@ package pkg
 import (
   "context"
   "errors"
-  "sync"
+  "os"
 
+  "github.com/go-pg/pg"
   opentracing "github.com/opentracing/opentracing-go"
 )
 
@@ -25,28 +26,31 @@ var (
   ErrNotFound        = errors.New("user not found")
 )
 
-type InMemService struct {
-  mtx sync.RWMutex
-  m map[string]User
+type PGService struct {
+  db *pg.DB
 }
 
-// Inmemory service implementation
-func NewInMemService() UsersService {
-  return &InMemService{
-    m: map[string] User{},
+func NewPGService() UsersService {
+  return &PGService{
+    db: pg.Connect(&pg.Options{
+      Addr: os.Getenv("PG_HOST") + ":" + os.Getenv("PG_PORT"),
+      User: os.Getenv("PG_USER"),
+      Password: os.Getenv("PG_PASSWORD"),
+      Database: os.Getenv("PG_DB"),
+    }),
   }
 }
 
-func (s *InMemService) Create(ctx context.Context, u User) (User, error) {
+func (s *PGService) Create(ctx context.Context, u User) (User, error) {
   span := opentracing.SpanFromContext(ctx)
   defer span.Finish()
-  s.mtx.Lock()
-  defer s.mtx.Unlock()
-  if _, ok := s.m[u.Email]; ok {
-    span.SetTag("error", ErrAlreadyExists)
-    return User{}, ErrAlreadyExists // POST = create, don't overwrite
+
+  err := s.db.Insert(&u)
+
+  if err != nil {
+    return User{}, err
   }
-  s.m[u.Email] = u
+
   span.SetTag("user", u.Email)
   return u, nil
 }
