@@ -12,6 +12,9 @@ import (
   "github.com/sohaibfarooqi/fragbook/users/pkg"
   "github.com/go-kit/kit/log"
 
+  "github.com/prometheus/client_golang/prometheus"
+  endpoint "github.com/go-kit/kit/endpoint"
+  kitprom "github.com/go-kit/kit/metrics/prometheus"
   opentracing "github.com/opentracing/opentracing-go"
   zipkin "github.com/openzipkin/zipkin-go-opentracing"
   promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
@@ -50,7 +53,9 @@ func main(){
     logger.Log("unable to create zipking tracer", err)
     os.Exit(1)
   }
+
   opentracing.InitGlobalTracer(tracer)
+  HttpSummaryMiddleware(logger)
 
   var s pkg.UsersService
   {
@@ -70,7 +75,6 @@ func main(){
       logger.Log("transport", "debug/HTTP", "during", "Listen", "err", err)
     }
     errs <- http.Serve(debugListener, http.DefaultServeMux)
-
   }()
 
   go func() {
@@ -87,3 +91,14 @@ func main(){
   logger.Log("exit", <-errs)
 }
 
+func HttpSummaryMiddleware(logger log.Logger) (mw map[string][]endpoint.Middleware){
+  mw = map[string][]endpoint.Middleware{}
+  duration := kitprom.NewSummaryFrom(prometheus.SummaryOpts{
+    Help:      "Request duration in seconds.",
+    Name:      "request_duration_seconds",
+    Namespace: "example",
+    Subsystem: "users",
+  }, []string{"method", "success"})
+  mw["Create"] = []endpoint.Middleware{pkg.LoggingMiddleware(log.With(logger, "method", "Create")), pkg.InstrumentingMiddleware(duration.With("method", "Create"))}
+  return mw
+}
